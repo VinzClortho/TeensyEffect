@@ -6,8 +6,8 @@ void AudioEffectExciter::init(float sampleRate) {
 
   // set defaults
   setFrequency(1200.0);
-  setClipBoostDb(3.0);
-  setHarmonicsPercent(25.0);
+  setClipBoostDb(6.0);
+  setHarmonicsPercent(50.0);
   setMixBackDb(-6.0);
 }
 
@@ -21,16 +21,20 @@ void AudioEffectExciter::update(void) {
 
   if (inBlock == NULL || outBlock == NULL) return;
 
-  // do the EQ'ing
+  float clipTemp;
+
+  // do the exciting stuff
   for (int i = 0; i < AUDIO_BLOCK_SAMPLES; ++i) {
-    spl = inBlock->data[i];
+    spl = inBlock->data[i] * INT_TO_FLOAT;
     s = spl;
-    s -= (tmpONE = a0 * s - b1 * tmpONE + C_DENORM);
-    s = min(max(s * clipBoost, -1), 1);
-    s = (1 + foo) * s / (1 + foo * abs(spl));
-    s -= (tmpTWO = a0 * s - b1 * tmpTWO + C_DENORM);
+    s -=  (tmpONE = a0 * s - b1 * tmpONE + C_DENORM);
+    clipTemp = s * clipBoost;
+    if (clipTemp < -1) s = -1;
+    if (clipTemp > 1) s = 1;
+    s = fooPlusOne * s / (1 + foo * abs(spl));
+    s -=  (tmpTWO = a0 * s - b1 * tmpTWO + C_DENORM);
     spl += s * mixBack;
-    outBlock->data[i] = spl;
+    outBlock->data[i] = spl * FLOAT_TO_INT;
   }
 
   // send the block and release the memory
@@ -57,6 +61,7 @@ void AudioEffectExciter::setHarmonicsPercent(float harmonicsPercent) {
   __disable_irq();
   hdistr = min(harmonicsPercent / 100, .9);
   foo = 2 * hdistr / (1 - hdistr);
+  fooPlusOne = foo + 1;
   __enable_irq();
 }
 

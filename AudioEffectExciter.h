@@ -26,7 +26,7 @@ class AudioEffectExciter : public AudioStream
     float clipBoost;
     float mixBack;
     float hdistr;
-    float foo;
+    float foo, fooPlusOne;
     float freq;
     float x;
     float a0;

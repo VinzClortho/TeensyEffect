@@ -3,8 +3,7 @@
 
 #include "AudioStream.h"
 
-class AudioEffectParametricEq :  public AudioStream
-{
+class AudioEffectParametricEq : public AudioStream {
   public:
     AudioEffectParametricEq() : AudioStream(1, inputQueueArray) {
       // any extra initialization
@@ -144,10 +143,10 @@ class AudioEffectParametricEq :  public AudioStream
     float a29;
 
     float spl, ospl;
-    float y10, y20, x10, x20;
+    float y10, y20, _x10, x20;
     float y11, y21, x11, x21;
     float y13, y23, x13, x23;
-    float y15, y25, x15, x25;
+    float y15, y25, x15, _x25;
     float y17, y27, x17, x27;
     float y19, y29, x19, x29;
 
