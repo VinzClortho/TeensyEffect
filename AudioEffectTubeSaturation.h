@@ -17,6 +17,7 @@ class AudioEffectTubeSaturation : public AudioStream
 
     void setDrive(float drive);
     void setMakeupGainDb(float gain);
+    void setLpfFrequency(float freq);
 
   private:
     audio_block_t *inputQueueArray[1];
@@ -28,6 +29,9 @@ class AudioEffectTubeSaturation : public AudioStream
 
     float inSpl, spl;
     float lastSpl;
+
+    float alpha;
+    float satSpl, lastSatSpl;
 };
 
 #endif /* _AUDIO_EFFECT_TUBE_SATURATION_H */

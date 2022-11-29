@@ -7,6 +7,7 @@ void AudioEffectTubeSaturation::init(float sampleRate) {
   // defaults
   setDrive(0.5);
   setMakeupGainDb(0.0);
+  setLpfFrequency(5000.0);
 }
 
 void AudioEffectTubeSaturation::update(void) {
@@ -24,10 +25,12 @@ void AudioEffectTubeSaturation::update(void) {
     inSpl = inBlock->data[i] * INT_TO_FLOAT;
 
     // saturation
-    spl = saturation(lastSpl, inSpl, ANTI_ALIASING_STEPS, drive);
+    satSpl = saturation(lastSpl, inSpl, ANTI_ALIASING_STEPS, drive);
     lastSpl = inSpl;
 
-    // TODO: LPF
+    // LPF
+    spl = lastSatSpl + alpha * (satSpl - lastSatSpl);
+    lastSatSpl = satSpl;
 
     spl *= makeupGain;
 
@@ -51,5 +54,13 @@ void AudioEffectTubeSaturation::setDrive(float drive) {
 void AudioEffectTubeSaturation::setMakeupGainDb(float gain) {
   __disable_irq();
   makeupGain = exp(gain * DB_TO_LOG);
+  __enable_irq();
+}
+
+void AudioEffectTubeSaturation::setLpfFrequency(float freq) {
+  __disable_irq();
+  float RC = 1.0 / (freq * 2 * PI);
+  float dt = 1.0 / sampleRate;
+  alpha = dt / (RC + dt);
   __enable_irq();
 }
