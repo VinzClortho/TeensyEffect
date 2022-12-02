@@ -6,6 +6,7 @@
 #include "AudioEffectOpticalCompressor.h"
 #include "AudioEffectFetCompressor.h"
 #include "AudioEffectExciter.h"
+#include "FastMath.h"
 
 #define DEBUG
 
@@ -37,17 +38,70 @@ void loop() {
 
 #ifdef DEBUG
 
-  Serial.print("ParametricEq CPU: ");
-  Serial.println(paraEq.processorUsage());
+  //  Serial.print("ParametricEq CPU: ");
+  //  Serial.println(paraEq.processorUsage());
+  //
+  //  Serial.print("Optical Compressor CPU: ");
+  //  Serial.println(optComp.processorUsageMax());
+  //
+  //  Serial.print("Fet Compressor CPU: ");
+  //  Serial.println(fetComp.processorUsageMax());
+  //
+  //  Serial.print("Exciter CPU: ");
+  //  Serial.println(exciter.processorUsageMax());
+  //
+  //  Serial.println();
 
-  Serial.print("Optical Compressor CPU: ");
-  Serial.println(optComp.processorUsageMax());
+  float r;
+  float recip, fRecip;
+  float root, fRoot;
+  long loops = 10000;
 
-  Serial.print("Fet Compressor CPU: ");
-  Serial.println(fetComp.processorUsageMax());
+  unsigned long start = millis();
 
-  Serial.print("Exciter CPU: ");
-  Serial.println(exciter.processorUsageMax());
+  for (long i = 0; i < loops; ++i) {
+    r = random(9) + 1.0f;
+    recip = 1.0f / r;
+  }
+  unsigned long end = millis();
+  Serial.print("Actual recip: ");
+  Serial.print(recip);
+  Serial.print("   microsec: ");
+  Serial.println(end - start);
+
+
+  start = millis();
+  for (long i = 0; i < loops; ++i) {
+    r = random(9) + 1.0f;
+    fRecip = fastRecip(r);
+  }
+  end = millis();
+  Serial.print("  Fast recip: ");
+  Serial.print(fRecip);
+  Serial.print("   microsec: ");
+  Serial.println(end - start);
+
+  start = millis();
+  for (long i = 0; i < loops; ++i) {
+    r = random(9) + 1.0f;
+    root = sqrt(r);
+  }
+  end = millis();
+  Serial.print("        sqrt: ");
+  Serial.print(root);
+  Serial.print("   microsec: ");
+  Serial.println(end - start);
+
+  start = millis();
+  for (long i = 0; i < loops; ++i) {
+    r = random(9) + 1.0f;
+    fRoot = fastSqrt(r);
+  }
+  end = millis();
+  Serial.print("   fast sqrt: ");
+  Serial.print(fRoot);
+  Serial.print("   microsec: ");
+  Serial.println(end - start);
 
   Serial.println();
 

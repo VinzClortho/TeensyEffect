@@ -1,3 +1,4 @@
+#include <Arduino.h>
 #include "FastMath.h"
 
 /*
@@ -88,4 +89,81 @@ float saturation(float y0, float y2, int antiAliasSteps, float drive) {
   }
 
   return sum * step;
+}
+
+unsigned char bit_width(unsigned int x) {
+  return x == 0 ? 1 : 32 - __builtin_clz(x);
+}
+
+// implementation for all unsigned integer types
+unsigned iSqrt(const unsigned int n) {
+
+  unsigned char shift = bit_width(n);
+  shift += shift & 1; // round up to next multiple of 2
+
+  unsigned result = 0;
+
+  do {
+    shift -= 2;
+    result <<= 1; // leftshift the result to make the next guess
+    result |= 1;  // guess that the next bit is 1
+    result ^= result * result > (n >> shift); // revert if guess too high
+  } while (shift != 0);
+
+  return result;
+}
+
+
+// this is about 30% faster than build in sqrt on a Teensy 3.2!
+float fastSqrt(const float x) {
+
+  // this conditional adds a lot of CPU cycles?!
+  //   if (x <= 0.0f) return 0.0f;
+
+  float nRoot;
+  int iRoot = iSqrt((int) x);
+
+  // get a good starting estimate
+  if (iRoot == 0) {
+    // scale up to get a decent starting estimate
+    nRoot = (float) iSqrt((int) (x * 1048576.0f));
+    // then scale back down
+    nRoot *= 0.0009765625f;
+  } else {
+    // only find a starting estimate for non-affine values
+    int nextRoot = iRoot + 1;
+
+    // linear interpolate estimate between next perfect square
+    // use int math as much as possible for speed
+    int iRoot2 = iRoot * iRoot;
+    float delta = x - (float) iRoot2;
+    float range = (float) (nextRoot * nextRoot - iRoot2);
+    nRoot = (float) iRoot + delta / range;
+  }
+
+  // only need one iteration of the continued fraction to improve the estimate
+  // using the initial estimate for all instances of a and sqrt(x)
+  return nRoot + (x - nRoot * nRoot) / (2 * nRoot);
+}
+
+// This is working with Teensy 3.2 but will hopefully be faster with the 3.5+ FPU
+float fastRecip(float x) {
+
+  // TODO: check for FPU and fall back to regular math if not present!
+
+  long i = *(long*)&x;
+  long ii = 0x7f3210da - i;
+  i = 0x7eb210da - i;
+  float y = *(float*)&i;
+  float yy = *(float*)&ii;
+  const float negXY = -x * y;
+
+  y = yy * (1.4143113f + negXY);
+  float r = negXY + 1.0f;
+  return y * r + y;
+
+  // fmaf is slower without FPU!
+  //  y = yy * fmaf(y, -x, 1.4143113f);
+  //  float r = fmaf(y, -x, 1.0f);
+  //  return fmaf(y, r, y);
 }

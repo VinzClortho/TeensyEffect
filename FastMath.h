@@ -27,4 +27,7 @@ float fastTanh(float x);
 float addEvenOrderHarmonics(float x);
 float saturation(float y0, float y2, int antiAliasSteps, float drive);
 
+float fastRecip(float x);
+float fastSqrt(const float x);
+
 #endif /* _FAST_MATH_H */
