@@ -32,25 +32,94 @@ void AudioEffectParametricEq::update(void) {
 
   if (inBlock == NULL || outBlock == NULL) return;
 
+  float spl, ospl;
+
+  // get class variables into local variable for better stack usage
+  float b00 = this->b00;
+  float b10 = this->b10;
+  float b20 = this->b20;
+  float a10 = this->a10;
+  float a20 = this->a20;
+
+  float b01 = this->b01;
+  float b11 = this->b11;
+  float b21 = this->b21;
+  float a11 = this->a11;
+  float a21 = this->a21;
+
+  float b03 = this->b03;
+  float b13 = this->b13;
+  float b23 = this->b23;
+  float a13 = this->a13;
+  float a23 = this->a23;
+
+  float b05 = this->b05;
+  float b15 = this->b15;
+  float b25 = this->b25;
+  float a15 = this->a15;
+  float a25 = this->a25;
+
+  float b07 = this->b07;
+  float b17 = this->b17;
+  float b27 = this->b27;
+  float a17 = this->a17;
+  float a27 = this->a27;
+
+  float b09 = this->b09;
+  float b19 = this->b19;
+  float b29 = this->b29;
+  float a19 = this->a19;
+  float a29 = this->a29;
+
+  float _x10 = this->_x10;
+  float x20 = this->x20;
+  float y10 = this->y10;
+  float y20 = this->y20;
+
+  float x11 = this->x11;
+  float x21 = this->x21;
+  float y11 = this->y11;
+  float y21 = this->y21;
+
+  float x13 = this->x13;
+  float x23 = this->x23;
+  float y13 = this->y13;
+  float y23 = this->y23;
+
+  float x15 = this->x15;
+  float _x25 = this->_x25;
+  float y15 = this->y15;
+  float y25 = this->y25;
+
+  float x17 = this->x17;
+  float x27 = this->x27;
+  float y17 = this->y17;
+  float y27 = this->y27;
+
+  float x19 = this->x19;
+  float x29 = this->x29;
+  float y19 = this->y19;
+  float y29 = this->y29;
+
   // do the EQ'ing
-  for (int i = 0; i < AUDIO_BLOCK_SAMPLES; ++i) {
+  for (int i = 0; i != AUDIO_BLOCK_SAMPLES; ++i) {
 
     spl = inBlock->data[i];
 
     // HPF
-    if (hpfFreq > 0) {
+    if (fastNonZero(hpfFreq)) {
       ospl = spl;
       spl = b00 * spl + b10 * _x10 + b20 * x20 - a10 * y10 - a20 * y20;
       x20 = _x10;
       _x10 = ospl;
       y20 = y10;
-      y10 = abs(spl) < C_DENORM ? 0 : spl;
+      y10 = fastAbs(spl) < C_DENORM ? 0 : spl;
     }
 
     spl += C_DC_ADD;
 
     // LOW
-    if (lowFreq > 0 && lowGain != 0) {
+    if (fastNonZero(lowFreq) && fastNonZero(lowGain)) {
       ospl = spl;
       spl = b01 * spl + b11 * x11 + b21 * x21 - a11 * y11 - a21 * y21;
       x21 = x11;
@@ -60,7 +129,7 @@ void AudioEffectParametricEq::update(void) {
     }
 
     // LOW-MID
-    if (lowMidFreq > 0 && lowMidGain != 0) {
+    if (fastNonZero(lowMidFreq) && fastNonZero(lowMidGain)) {
       ospl = spl;
       spl = b03 * spl + b13 * x13 + b23 * x23 - a13 * y13 - a23 * y23;
       x23 = x13;
@@ -70,7 +139,7 @@ void AudioEffectParametricEq::update(void) {
     }
 
     // HIGH-MID
-    if (highMidFreq > 0 && highMidGain != 0) {
+    if (fastNonZero(highMidFreq) && fastNonZero(highMidGain)) {
       ospl = spl;
       spl = b05 * spl + b15 * x15 + b25 * _x25 - a15 * y15 - a25 * y25;
       _x25 = x15;
@@ -80,7 +149,7 @@ void AudioEffectParametricEq::update(void) {
     }
 
     // HIGH
-    if (highFreq > 0 && highGain != 0) {
+    if (fastNonZero(highFreq) && fastNonZero(highGain)) {
       ospl = spl;
       spl = b07 * spl + b17 * x17 + b27 * x27 - a17 * y17 - a27 * y27;
       x27 = x17;
@@ -99,7 +168,7 @@ void AudioEffectParametricEq::update(void) {
       y19 = spl;
     }
 
-    outBlock->data[i] = inBlock->data[i]; // spl * outGain;
+    outBlock->data[i] = spl * outGain;
   }
 
   // send the block and release the memory
@@ -108,6 +177,37 @@ void AudioEffectParametricEq::update(void) {
   // need to also release the input block because the library uses reference counting...
   release(inBlock);
   release(outBlock);
+
+  // copy back to class state
+  this->_x10 = _x10;
+  this->x20 = x20;
+  this->y10 = y10;
+  this->y20 = y20;
+
+  this->x11 = x11;
+  this->x21 = x21;
+  this->y11 = y11;
+  this->y21 = y21;
+
+  this->x13 = x13;
+  this->x23 = x23;
+  this->y13 = y13;
+  this->y23 = y23;
+
+  this->x15 = x15;
+  this->_x25 = _x25;
+  this->y15 = y15;
+  this->y25 = y25;
+
+  this->x17 = x17;
+  this->x27 = x27;
+  this->y17 = y17;
+  this->y27 = y27;
+
+  this->x19 = x19;
+  this->x29 = x29;
+  this->y19 = y19;
+  this->y29 = y29;
 
 }
 

@@ -32,8 +32,6 @@ class AudioEffectExciter : public AudioStream
     float a0;
     float b1;
     float tmpONE, tmpTWO;
-
-    float spl, s;
 };
 
 #endif /* _AUDIO_EFFECT_EXCITER_H */

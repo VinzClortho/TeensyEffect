@@ -15,8 +15,8 @@ void AudioEffectFetCompressor::init(float sampleRate) {
   cratio = 0;
   rundb = 0;
   overdb = 0;
-  ratatcoef = exp(-1 / (0.00001 * sampleRate));
-  ratrelcoef = exp(-1 / (0.5 * sampleRate));
+  ratatcoef = fastExp(-1 / (0.00001 * sampleRate));
+  ratrelcoef = fastExp(-1 / (0.5 * sampleRate));
 }
 
 void AudioEffectFetCompressor::update(void) {
@@ -31,26 +31,37 @@ void AudioEffectFetCompressor::update(void) {
   if (inBlock == NULL || outBlock == NULL) return;
 
   // do the compressing
-  for (int i = 0; i < AUDIO_BLOCK_SAMPLES; ++i) {
+  for (int i = 0; i != AUDIO_BLOCK_SAMPLES; ++i) {
 
     spl = inBlock->data[i];
     ospl = spl;
-    aspl = abs(ospl);
-    maxspl = aspl * aspl;
+    maxspl = spl * spl;
     runave = maxspl + rmscoef * (runave - maxspl);
-    det = sqrt(max(0, runave));
-    overdb = max(0, capsc * log(det * cthreshvRecip));
+    det = fastSqrt3(max(0, runave));
+    overdb = max(0, capsc * fastLog(det * cthreshvRecip));
 
-    if (overdb - rundb > 5) {
-      averatio = 4;
-    }
+    if (overdb - rundb > 5) averatio = 4;
 
     if (overdb > rundb) {
+
+#ifndef _HAS_FPU
       rundb = overdb + atcoef * (rundb - overdb);
       runratio = averatio + ratatcoef * (runratio - averatio);
+#else
+      rundb = fmaf(atcoef, rundb - overdb, overdb);
+      runratio = fmaf(ratatcoef, runratio - averatio, averatio);
+#endif
+
     } else {
+
+#ifndef _HAS_FPU
       rundb = overdb + relcoef * (rundb - overdb);
       runratio = averatio + ratrelcoef * (runratio - averatio);
+#else
+      rundb = fmaf(relcoef, rundb - overdb, overdb);
+      runratio = fmaf(rratrerlcoef, runratio - averatio, averatio);
+#endif
+
     }
 
     overdb = rundb;
@@ -63,8 +74,14 @@ void AudioEffectFetCompressor::update(void) {
     }
 
     gr = -overdb * (cratio - 1) / cratio;
-    grv = exp(gr * DB_TO_LOG);
+    grv = fastExp(gr * DB_TO_LOG);
+
+#ifndef _HAS_FPU
     runmax = maxover + relcoef * (runmax - maxover);  // highest peak for setting att/rel decays in reltime
+#else
+    runmax = fmaf(relcoef, runmax - maxover, maxover);
+#endif
+
     maxover = runmax;
     spl *= grv * makeupv * mix;
     spl += ospl * (1 - mix);

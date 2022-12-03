@@ -142,7 +142,6 @@ class AudioEffectParametricEq : public AudioStream {
     float a19;
     float a29;
 
-    float spl, ospl;
     float y10, y20, _x10, x20;
     float y11, y21, x11, x21;
     float y13, y23, x13, x23;

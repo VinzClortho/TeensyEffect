@@ -16,22 +16,23 @@ AudioEffectParametricEq paraEq;
 AudioEffectExciter exciter;
 AudioEffectFetCompressor fetComp;
 AudioEffectOpticalCompressor optComp;
-AudioConnection          patchCord1(adc1, exciter);
-AudioConnection          patchCord2(exciter, dac1);
+//AudioConnection          patchCord1(adc1, fetComp);
+//AudioConnection          patchCord2(fetComp, dac1);
 //AudioConnection          patchCord3(optComp, fetComp);
 //AudioConnection          patchCord4(fetComp, exciter);
 //AudioConnection          patchCord5(exciter, dac1);
 
 void setup() {
-  Serial.begin(115200);
+  Serial.begin(9600);
 
-  paraEq.init(AUDIO_SAMPLE_RATE_EXACT);
-  optComp.init(AUDIO_SAMPLE_RATE_EXACT);
-  fetComp.init(AUDIO_SAMPLE_RATE_EXACT);
-  exciter.init(AUDIO_SAMPLE_RATE_EXACT);
+  //  paraEq.init(AUDIO_SAMPLE_RATE_EXACT);
+  //  optComp.init(AUDIO_SAMPLE_RATE_EXACT);
+  //  fetComp.init(AUDIO_SAMPLE_RATE_EXACT);
+  //    exciter.init(AUDIO_SAMPLE_RATE_EXACT);
 
   analogReference(INTERNAL);
-  AudioMemory(64);
+  AudioMemory(16);
+
 }
 
 void loop() {
@@ -48,9 +49,9 @@ void loop() {
   //  Serial.println(fetComp.processorUsageMax());
   //
   //  Serial.print("Exciter CPU: ");
-  //  Serial.println(exciter.processorUsageMax());
+  //  Serial.println(exciter.processorUsage());
   //
-  //  Serial.println();
+  Serial.println();
 
   float r;
   float recip, fRecip;
@@ -66,42 +67,219 @@ void loop() {
   unsigned long end = millis();
   Serial.print("Actual recip: ");
   Serial.print(recip);
-  Serial.print("   microsec: ");
+  Serial.print("   ms: ");
   Serial.println(end - start);
 
+
+//  start = millis();
+//  for (long i = 0; i < loops; ++i) {
+//    r = random(9) + 1.0f;
+//    fRecip = fastRecip(r);
+//  }
+//  end = millis();
+//  Serial.print("  Fast recip: ");
+//  Serial.print(fRecip);
+//  Serial.print("   ms: ");
+//  Serial.println(end - start);
 
   start = millis();
   for (long i = 0; i < loops; ++i) {
     r = random(9) + 1.0f;
-    fRecip = fastRecip(r);
+    fRecip = fastRecip2(r);
   }
   end = millis();
-  Serial.print("  Fast recip: ");
+  Serial.print(" Fast recip2: ");
   Serial.print(fRecip);
-  Serial.print("   microsec: ");
+  Serial.print("   ms: ");
   Serial.println(end - start);
+
 
   start = millis();
   for (long i = 0; i < loops; ++i) {
-    r = random(9) + 1.0f;
-    root = sqrt(r);
+    r = random(2);
+    root = sqrtf(r);
   }
   end = millis();
-  Serial.print("        sqrt: ");
+  Serial.print(" Actual sqrt: ");
   Serial.print(root);
-  Serial.print("   microsec: ");
+  Serial.print("   ms: ");
+  Serial.println(end - start);
+
+//  start = millis();
+//  for (long i = 0; i < loops; ++i) {
+//    r = random(2);
+//    fRoot = fastSqrt(r);
+//  }
+//  end = millis();
+//  Serial.print("   fast sqrt: ");
+//  Serial.print(fRoot);
+//  Serial.print("   ms: ");
+//  Serial.println(end - start);
+//
+//  start = millis();
+//  for (long i = 0; i < loops; ++i) {
+//    r = random(2);
+//    fRoot = fastSqrt2(r);
+//  }
+//  end = millis();
+//  Serial.print("  fast sqrt2: ");
+//  Serial.print(fRoot);
+//  Serial.print("   ms: ");
+//  Serial.println(end - start);
+
+  start = millis();
+  for (long i = 0; i < loops; ++i) {
+    r = random(20);
+    fRoot = fastSqrt3(r);
+  }
+  end = millis();
+  Serial.print("  fast sqrt3: ");
+  Serial.print(fRoot);
+  Serial.print("   ms: ");
+  Serial.println(end - start);
+
+  float p;
+  float _pow, fPow;
+
+  start = millis();
+  for (long i = 0; i < loops; ++i) {
+    r = random(20) + 0.01f;
+    p = random(10);
+    _pow = powf(r, p);
+  }
+  end = millis();
+  Serial.print("  Actual pow: ");
+  Serial.print(_pow);
+  Serial.print("   ms: ");
   Serial.println(end - start);
 
   start = millis();
   for (long i = 0; i < loops; ++i) {
-    r = random(9) + 1.0f;
-    fRoot = fastSqrt(r);
+    r = random(20) + 0.01f;
+    p = random(10);
+    fPow = fastPow(r, p);
   }
   end = millis();
-  Serial.print("   fast sqrt: ");
-  Serial.print(fRoot);
-  Serial.print("   microsec: ");
+  Serial.print("    fast pow: ");
+  Serial.print(fPow);
+  Serial.print("   ms: ");
   Serial.println(end - start);
+
+  float realExp, fExp;
+
+  start = millis();
+  for (long i = 0; i < loops; ++i) {
+    p = random(10);
+    realExp = expf(p);
+  }
+  end = millis();
+  Serial.print("  Actual exp: ");
+  Serial.print(realExp);
+  Serial.print("   ms: ");
+  Serial.println(end - start);
+
+  start = millis();
+  for (long i = 0; i < loops; ++i) {
+    p = random(10);
+    fExp = fastExp(p);
+  }
+  end = millis();
+  Serial.print("    fast exp: ");
+  Serial.print(fExp);
+  Serial.print("   ms: ");
+  Serial.println(end - start);
+
+
+  float realLog, fLog;
+
+  start = millis();
+  for (long i = 0; i < loops; ++i) {
+    p = random(10);
+    realLog = logf(p);
+  }
+  end = millis();
+  Serial.print("  Actual log: ");
+  Serial.print(realLog);
+  Serial.print("   ms: ");
+  Serial.println(end - start);
+
+  start = millis();
+  for (long i = 0; i < loops; ++i) {
+    p = random(10);
+    fLog = fastLog(p);
+  }
+  end = millis();
+  Serial.print("    fast log: ");
+  Serial.print(fLog);
+  Serial.print("   ms: ");
+  Serial.println(end - start);
+
+  float realTanH, fTanH;
+
+  start = millis();
+  for (long i = 0; i < loops; ++i) {
+    p = random(PI);
+    realTanH = tanhf(p);
+  }
+  end = millis();
+  Serial.print(" Actual tanh: ");
+  Serial.print(realTanH);
+  Serial.print("   ms: ");
+  Serial.println(end - start);
+
+  start = millis();
+  for (long i = 0; i < loops; ++i) {
+    p = random(PI);
+    fTanH = fastTanh(p);
+  }
+  end = millis();
+  Serial.print("   fast tanh: ");
+  Serial.print(fTanH);
+  Serial.print("   ms: ");
+  Serial.println(end - start);
+
+
+  float realSin, fSin;
+
+  start = millis();
+  for (long i = 0; i < loops; ++i) {
+    p = random(PI);
+    realSin = sinf(p);
+  }
+  end = millis();
+  Serial.print("  Actual sin: ");
+  Serial.print(realSin);
+  Serial.print("   ms: ");
+  Serial.println(end - start);
+
+  start = millis();
+  for (long i = 0; i < loops; ++i) {
+    p = random(PI);
+    fSin = fastSin(p);
+  }
+  end = millis();
+  Serial.print("    fast sin: ");
+  Serial.print(fSin);
+  Serial.print("   ms: ");
+  Serial.println(end - start);
+
+  //////////////////////////////////
+  // specific value tests
+  //////////////////////////////////
+
+//  r = random(10);
+//  Serial.print("Recip ");
+//  recip = 1.0f / r;
+//  Serial.print(recip);
+//  Serial.print(" -> ");
+//  Serial.println(fastRecip2(r));
+//
+//  Serial.print("Pow 3.2, 3.9 = ");
+//  _pow = powf(3.2, 3.9);
+//  fPow = fastPow(3.2, 3.9);
+//  Serial.print(_pow);
+//  Serial.print(" -> ");
+//  Serial.println(fPow);
 
   Serial.println();
 

@@ -21,37 +21,60 @@ void AudioEffectOpticalCompressor::update(void) {
   inBlock = receiveReadOnly();
   outBlock = allocate();
 
+#ifdef _HAS_FPU
+  float tmp;
+#endif
+
   if (inBlock == NULL || outBlock == NULL) return;
 
   // do the compressing
-  for (int i = 0; i < AUDIO_BLOCK_SAMPLES; ++i) {
+  for (int i = 0; i != AUDIO_BLOCK_SAMPLES; ++i) {
 
     spl = inBlock->data[i];
-    aspl = abs(spl);
-    maxspl = aspl * aspl;
+    maxspl = spl * spl;
 
+#ifndef _HAS_FPU
     runave = maxspl + rmscoef * (runave - maxspl);
-    det = sqrt(max(0, runave));
+#else
+    runave = famf(rmscoef, runave - maxspl, maxspl);
+#endif
 
-    overdb = capsc * log(det * threshvRecip);
+    det = fastSqrt3(max(0, runave));
+
+    overdb = capsc * fastLog(det * threshvRecip);
     overdb = max(0, overdb);
 
+#ifndef _HAS_FPU
     if (overdb > rundb) {
       rundb = overdb + atcoef * (rundb - overdb);
     } else {
       rundb = overdb + relcoef * (rundb - overdb);
     }
+#else
+    if (overdb > rundb) {
+      rundb = fmaf(atcoef , rundb - overdb, overdb);
+    } else {
+      rundb = fmaf(relcoef, rundb - overdb, overdb);
+    }
+#endif
 
     overdb = max(rundb, 0);
 
     if (bias == 0) {
       cratio = ratio;
     } else {
-      cratio = 1 + (ratio - 1) * sqrt((overdb + dcoffset) / (bias + dcoffset));
+
+#ifndef _HAS_FPU
+      cratio = 1 + (ratio - 1) * fastSqrt3((overdb + dcoffset) / (bias + dcoffset));
+#else
+      tmp = fastSqrt3((overdb + dcoffset) / (bias + dcoffset));
+      cratio = fmaf(ratio - 1, tmp, 1);
+#endif
+
     }
 
     gr = -overdb * (cratio - 1) / cratio;
-    grv = exp(gr * DB_TO_LOG);
+    grv = fastExp(gr * DB_TO_LOG);
 
     spl *= grv * makeupv;
     outBlock->data[i] = spl;

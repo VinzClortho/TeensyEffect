@@ -1,9 +1,12 @@
 #ifndef _FAST_MATH_H
 #define _FAST_MATH_H
 
+// #define _HAS_FPU
+// #define _HIGHER_ACCURACY
+
 #define NUM_CHANNELS 1
 #define AUDIO_BLOCK_SAMPLES 128
-
+inline
 #define C_DC_ADD  10E-30
 #define C_DENORM 10E-30
 #define C_AMP_DB 8.65617025
@@ -12,7 +15,6 @@
 #define BLOWN_CAP_SCALAR 2.08136898
 #define FLOAT_TO_INT  2048
 #define INT_TO_FLOAT  1.0/FLOAT_TO_INT
-
 
 #define AA_STEP_1 1.0
 #define AA_STEP_2 1.0/2.0
@@ -23,11 +25,25 @@
 #define AA_STEP_7 1.0/7.0
 #define AA_STEP_8 1.0/8.0
 
-float fastTanh(float x);
 float addEvenOrderHarmonics(float x);
 float saturation(float y0, float y2, int antiAliasSteps, float drive);
 
+float fastAbs(float f);
+float fastExp(const float x);
+bool fastIsNegative(const float x);
+float fastLog(const float a);
+bool fastNonZero(const float x);
+float fastPow(float a, float b);
 float fastRecip(float x);
+float fastRecip2(float f);
+float fastSin(float x);
 float fastSqrt(const float x);
+float fastSqrt2(const float x);
+float fastSqrt3(const float x);
+float fastTanh(float x);
+
+// implementation methods not intended for general use
+float _fastPow(const float a, const float b);
+float _floatToIntPower(float base, int power);
 
 #endif /* _FAST_MATH_H */

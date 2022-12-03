@@ -22,6 +22,7 @@ void AudioEffectTubeSaturation::update(void) {
 
   // do the saturation stuff
   for (int i = 0; i < AUDIO_BLOCK_SAMPLES; ++i) {
+
     inSpl = inBlock->data[i] * INT_TO_FLOAT;
 
     // saturation
@@ -29,7 +30,12 @@ void AudioEffectTubeSaturation::update(void) {
     lastSpl = inSpl;
 
     // LPF
+#ifndef _HAS_FPU
     spl = lastSatSpl + alpha * (satSpl - lastSatSpl);
+#else
+    spl = fmaf(alpha, satSpl - lastSatSpl, lastSetSpl);
+#endif
+
     lastSatSpl = satSpl;
 
     spl *= makeupGain;

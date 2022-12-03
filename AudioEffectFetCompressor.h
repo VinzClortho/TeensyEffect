@@ -54,7 +54,7 @@ class AudioEffectFetCompressor : public AudioStream
     float cthreshv, cthreshvRecip;
     float makeupv;
     float autogain;
-    float spl, ospl, aspl, maxspl;
+    float spl, ospl, maxspl;
     float runave, rmscoef = 1, runmax, maxover;
     float det;
     float averatio, runratio;

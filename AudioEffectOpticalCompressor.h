@@ -36,7 +36,7 @@ class AudioEffectOpticalCompressor : public AudioStream
     float capsc;
     float atcoef, relcoef, rmscoef;
 
-    float spl, aspl, maxspl;
+    float spl, maxspl;
     float runave, det, overdb, rundb;
     float cratio, ratio;
     float dcoffset = 0.0;
