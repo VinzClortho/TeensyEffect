@@ -32,7 +32,6 @@ void AudioEffectOpticalCompressor::update(void) {
   float atcoef = this->atcoef;
   float relcoef = this->relcoef;
   float biasRecip = this->biasRecip;
-  float ratio = this->ratio;
   float makeupv = this->makeupv;
 
   // do the compressing
@@ -47,22 +46,15 @@ void AudioEffectOpticalCompressor::update(void) {
     float overdb = capsc * fastLog(det * threshvRecip);
     overdb = max(0, overdb);
 
-    if (overdb > rundb) {
-      rundb = overdb + atcoef * (rundb - overdb);
-    } else {
-      rundb = overdb + relcoef * (rundb - overdb);
-    }
+    float dbDelta = rundb - overdb;
+    rundb = overdb;
+    // dbDelta will be negative if overdb is greater than rundb, so we're in the attack phase.  Otherwise, we're in the release phase.
+    rundb += dbDelta < 0.0f ? atcoef * dbDelta : relcoef * dbDelta;
 
     overdb = max(rundb, 0);
 
-    float cratio;
-    if (biasRecip == 0.0f) {
-      cratio = ratio;
-    } else {
-      cratio = 1 + (ratio - 1) * fastSqrt(overdb * biasRecip);
-    }
-
-    float gr = -overdb * (cratio - 1) / cratio;
+    float cratio = OPT_COMP_RATIO_MINUS_ONE * fastSqrt(overdb * biasRecip);
+    float gr = -overdb * cratio  / (cratio + 1);
     float grv = fastExp(gr * DB_TO_LOG);
 
     spl *= grv * makeupv;
@@ -91,8 +83,10 @@ void AudioEffectOpticalCompressor::setThresholdDb(float thresh) {
 
 void AudioEffectOpticalCompressor::setBias(float bias) {
   __disable_irq();
+  // Always have a slight bias. This simpifies later logic.
+  if (bias < 0.1) bias = 0.1;
   bias *= 0.8;
-  this->biasRecip = bias > 0.0f ?  1.0f / bias : 0.0f;
+  this->biasRecip = 1.0f / bias;
   __enable_irq();
 }
 

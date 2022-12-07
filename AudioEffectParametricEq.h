@@ -35,6 +35,7 @@ class AudioEffectParametricEq : public AudioStream {
     void setLowMidParams(float freq, float q, float gain);
     void setHighMidParams(float freq, float q, float gain);
     void setHighParams(float freq, float q, float gain);
+    float fixFreq(float freq);
 
     float sampleRate;
     float maxFrequency;

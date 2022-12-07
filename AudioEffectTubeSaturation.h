@@ -4,7 +4,8 @@
 #include <Arduino.h>
 #include <AudioStream.h>
 
-#define ANTI_ALIASING_STEPS 4
+// valid values 1, 2, 4, and 8
+#define OVERSAMPLING 4
 #define NO_LPF_HISTORY_YET -12345
 
 class AudioEffectTubeSaturation : public AudioStream
@@ -24,7 +25,7 @@ class AudioEffectTubeSaturation : public AudioStream
     audio_block_t *inputQueueArray[1];
 
     float addEvenOrderHarmonics(float x);
-    float saturation(float y0, float y2, int antiAliasSteps, float drive);
+    float saturation(float y0, float y2, float drive);
 
     float sampleRate;
 

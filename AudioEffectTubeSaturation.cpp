@@ -26,7 +26,7 @@ void AudioEffectTubeSaturation::update(void) {
     inSpl = (float)inBlock->data[i] * INT_TO_FLOAT;
 
     // saturation
-    satSpl = saturation(lastSpl, inSpl, ANTI_ALIASING_STEPS, drive);
+    satSpl = saturation(lastSpl, inSpl, drive);
     lastSpl = inSpl;
 
     // LPF
@@ -76,14 +76,14 @@ void AudioEffectTubeSaturation::update(void) {
 float AudioEffectTubeSaturation::addEvenOrderHarmonics(float x) {
   float x2 = x * x;
 
-//  return ROOT_SCALAR * x + SECOND_SCALAR * x2;
+  //  return ROOT_SCALAR * x + SECOND_SCALAR * x2;
 
   //  return x * (ROOT_SCALAR + x * (SECOND_SCALAR + FOURTH_SCALAR * x2));  // basic polynomial
 
-    return x * (4 * x2 * (3 * x2 - 2) + 3); // Chebyshev polynomial of fundamental, 1nd and third harmonics
+  return x * (4 * x2 * (3 * x2 - 2) + 3); // Chebyshev polynomial of fundamental, 1nd and third harmonics
 
   // https://www.wolframalpha.com/input?i=x%2B2x%5E2-1%2B6x%5E4-4x%5E2%2B1
-//    return x * (x * (6 * x - 2) + 1); // Chebyshev polynomial of fundamental, 2nd and forth harmonics
+  //    return x * (x * (6 * x - 2) + 1); // Chebyshev polynomial of fundamental, 2nd and forth harmonics
 
 }
 
@@ -97,19 +97,61 @@ float AudioEffectTubeSaturation::addEvenOrderHarmonics(float x) {
       - if using antiAliasSteps=1, then y0 should be 0
    drive is a value between 0.0 and 1.0
 */
-float AudioEffectTubeSaturation::saturation(float y0, float y2, int antiAliasSteps, float drive) {
+float AudioEffectTubeSaturation::saturation(float y0, float y2, float drive) {
+
+#if OVERSAMPLING < 2
+  return fastTanh(drive * addEvenOrderHarmonics(y2));
+#endif
+
+#if OVERSAMPLING > 1
   float sum = 0.0;
-  float step = 1.0f / antiAliasSteps;
 
   // over an x delta of 1, so simple math
   float m = y2 - y0;
 
-  for (float x = 0.0; x < 1.0; x += step) {
-    sum += fastTanh(drive * addEvenOrderHarmonics(m * x + y0));
-  }
+#if OVERSAMPLING == 2
+  sum += fastTanh(drive * addEvenOrderHarmonics(m * 0.5 + y0));
+  sum += fastTanh(drive * addEvenOrderHarmonics(y2));
+  return sum * 0.5;
 
-  return sum * step;
-  }
+#elif OVERSAMPLING == 4
+  float mStep = m * 0.25;
+  float w = y0 + mStep;
+  sum += fastTanh(drive * addEvenOrderHarmonics(w));
+  w += mStep;
+  sum += fastTanh(drive * addEvenOrderHarmonics(w));
+  w += mStep;
+  sum += fastTanh(drive * addEvenOrderHarmonics(w));
+  sum += fastTanh(drive * addEvenOrderHarmonics(y2));
+  return sum * 0.25;
+
+#elif OVERSAMPLING == 8
+  float mStep = m * 0.125;
+  float w = y0 + mStep;
+  sum += fastTanh(drive * addEvenOrderHarmonics(w));
+  w += mStep;
+  sum += fastTanh(drive * addEvenOrderHarmonics(w));
+  w += mStep;
+  sum += fastTanh(drive * addEvenOrderHarmonics(w));
+  w += mStep;
+  sum += fastTanh(drive * addEvenOrderHarmonics(w));
+  w += mStep;
+  sum += fastTanh(drive * addEvenOrderHarmonics(w));
+  w += mStep;
+  sum += fastTanh(drive * addEvenOrderHarmonics(w));
+  w += mStep;
+  sum += fastTanh(drive * addEvenOrderHarmonics(w));
+  sum += fastTanh(drive * addEvenOrderHarmonics(y2));
+  return sum * 0.125;
+
+#else
+  // just pass through newest value
+  return y2;
+
+#endif
+
+#endif  // OVERSAMPLING > 1
+}
 
 void AudioEffectTubeSaturation::setDrive(float drive) {
   __disable_irq();

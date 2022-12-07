@@ -5,6 +5,9 @@
 #include <AudioStream.h>
 #include "FastMath.h"
 
+#define OPT_COMP_RATIO 20
+#define OPT_COMP_RATIO_MINUS_ONE OPT_COMP_RATIO-1
+
 class AudioEffectOpticalCompressor : public AudioStream
 {
   public:
@@ -32,7 +35,6 @@ class AudioEffectOpticalCompressor : public AudioStream
     float capsc;
     float atcoef, relcoef, rmscoef;
     float runave, rundb = 0.0f;
-    float ratio = 20.0f;
 };
 
 #endif /* _AUDIO_EFFECT_OPTICAL_COMP_H */

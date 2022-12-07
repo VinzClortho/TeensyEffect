@@ -2,19 +2,14 @@
 
 void AudioEffectFetCompressor::init(float sampleRate) {
   this->sampleRate = sampleRate;
-  ratioMode = BlownCap8;
 
   // set defaults
   setThresholdDb(-3.0);
-  setRatioMode(BlownCap4);
+  setRatioMode(Clean4);
   setGainDb(0.0);
-  setAttackTime(100000);
-  setReleaseTime(100);
+  setAttackTimeUs(20);
+  setReleaseTimeMs(100);
   setMix(100.0);
-  ratio = 0;
-  cratio = 0;
-  rundb = 0;
-  overdb = 0;
   ratatcoef = fastExp(-1 / (0.00001 * sampleRate));
   ratrelcoef = fastExp(-1 / (0.5 * sampleRate));
 }
@@ -30,49 +25,75 @@ void AudioEffectFetCompressor::update(void) {
 
   if (inBlock == NULL || outBlock == NULL) return;
 
+  // copy from class state
+  float runave = this->runave;
+  float capsc = this->capsc;
+  float cthreshvRecip = this->cthreshvRecip;
+  float rundb = this->rundb;
+  float averatio = this->averatio;
+  float runratio = this->runratio;
+  float atcoef = this->atcoef;
+  float ratatcoef = this->ratatcoef;
+  float relcoef = this->relcoef;
+  float ratrelcoef = this->ratrelcoef;
+  float runmax = this->runmax;
+  float maxover = this->maxover;
+  float makeupv = this->makeupv;
+  float mix = this->mix;
+  float oneMinusMix = this->oneMinusMix;
+
   // do the compressing
-  for (int i = 0; i != AUDIO_BLOCK_SAMPLES; ++i) {
+  for (int i = 0; i < AUDIO_BLOCK_SAMPLES; ++i) {
 
-    spl = inBlock->data[i];
-    ospl = spl;
-    maxspl = spl * spl;
+    float spl = (float)inBlock->data[i] * INT_TO_FLOAT;
+    float ospl = spl;
+    float maxspl = spl * spl;
+
     runave = maxspl + rmscoef * (runave - maxspl);
-    det = fastSqrt(max(0, runave));
-    overdb = max(0, capsc * fastLog(det * cthreshvRecip));
 
-    if (overdb - rundb > 5) averatio = 4;
+    float det = fastSqrt(max(0, runave));
+    float overdb = max(0, capsc * fastLog(det * cthreshvRecip));
 
-    if (overdb > rundb) {
-      rundb = overdb + atcoef * (rundb - overdb);
-      runratio = averatio + ratatcoef * (runratio - averatio);
+    float dbDelta = rundb - overdb;
+    if (dbDelta < -5) averatio = 4;
+
+    float ratioDelta = runratio - averatio;
+
+    // If dbDelta is less than 0, that means that overdb is greater than rundb and we are in the attack phase. Otherwise, we are in the release phase.
+    if (dbDelta < 0.0f) {
+      rundb = overdb + atcoef * dbDelta;
+      runratio = averatio + ratatcoef * ratioDelta;
     } else {
-      rundb = overdb + relcoef * (rundb - overdb);
-      runratio = averatio + ratrelcoef * (runratio - averatio);
+      rundb = overdb + relcoef * dbDelta;
+      runratio = averatio + ratrelcoef * ratioDelta;
     }
 
     overdb = rundb;
     averatio = runratio;
 
-    if (allin) {
-      cratio = 12 + averatio;
-    } else {
-      cratio = ratio;
-    }
-
-    gr = -overdb * (cratio - 1) / cratio;
-    grv = fastExp(gr * DB_TO_LOG);
+    float cratio = allin ? 12 + averatio : ratio;
+    float gr = -overdb * (cratio - 1) / cratio;
+    float grv = fastExp(gr * DB_TO_LOG);
 
     runmax = maxover + relcoef * (runmax - maxover);  // highest peak for setting att/rel decays in reltime
 
     maxover = runmax;
     spl *= grv * makeupv * mix;
-    spl += ospl * (1 - mix);
+    spl += ospl * oneMinusMix;
 
-    outBlock->data[i] = spl;
+    outBlock->data[i] = (int)(spl * FLOAT_TO_INT);
   }
 
   // send the block and release the memory
   transmit(outBlock);
+
+  // copy back to class state
+  this->runave = runave;
+  this->rundb = rundb;
+  this->averatio = averatio;
+  this->runratio = runratio;
+  this->runmax = runmax;
+  this->maxover = maxover;
 
   // need to also release the input block because the library uses reference counting...
   release(inBlock);
@@ -96,14 +117,14 @@ void AudioEffectFetCompressor::setSoftKnee(bool softknee) {
 
 void AudioEffectFetCompressor::setThresholdParams(bool softknee, float thresh) {
   float cthresh = (softknee ? (thresh - 3) : thresh);
-  cthreshv = exp(cthresh * DB_TO_LOG);
+  cthreshv = fastExp(cthresh * DB_TO_LOG);
   cthreshvRecip = 1 / cthreshv;
 }
 
 void AudioEffectFetCompressor::setRatioMode(RatioMode mode) {
   __disable_irq();
   ratioMode = mode;
-  rpos = ratioMode;
+  int rpos = ratioMode;
   capsc = LOG_TO_DB;
   if (rpos > 4) {
     rpos -= 5;
@@ -129,32 +150,32 @@ void AudioEffectFetCompressor::setRatioMode(RatioMode mode) {
       ratio = 20;
       break;
   }
-  cratio = ratio;
   __enable_irq();
 }
 
 void AudioEffectFetCompressor::setGainDb(float gain) {
   __disable_irq();
-  makeupv = exp((gain + autogain) * DB_TO_LOG);
+  makeupv = fastExp((gain) * DB_TO_LOG);
   __enable_irq();
 }
 
-void AudioEffectFetCompressor::setAttackTime(float uSec) {
+void AudioEffectFetCompressor::setAttackTimeUs(float uSec) {
   __disable_irq();
   float attime = uSec / 1000000;
-  atcoef = exp(-1 / (attime * sampleRate));
+  atcoef = fastExp(-1 / (attime * sampleRate));
   __enable_irq();
 }
 
-void AudioEffectFetCompressor::setReleaseTime(float mSec) {
+void AudioEffectFetCompressor::setReleaseTimeMs(float mSec) {
   __disable_irq();
   float reltime = mSec / 1000;
-  relcoef = exp(-1 / (reltime * sampleRate));
+  relcoef = fastExp(-1 / (reltime * sampleRate));
   __enable_irq();
 }
 
 void AudioEffectFetCompressor::setMix(float percent) {
   __disable_irq();
   mix = percent * 0.01;
+  oneMinusMix = 1 - mix;
   __enable_irq();
 }

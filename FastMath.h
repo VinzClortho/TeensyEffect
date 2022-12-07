@@ -14,6 +14,8 @@ inline
 #define BLOWN_CAP_SCALAR 2.08136898
 #define FLOAT_TO_INT  32768
 #define INT_TO_FLOAT  1.0f/FLOAT_TO_INT
+#define MIN_FREQ 20
+#define MAX_FREQ 20000
 
 #define AA_STEP_1 1.0
 #define AA_STEP_2 1.0/2.0

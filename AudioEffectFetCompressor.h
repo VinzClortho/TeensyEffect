@@ -22,8 +22,8 @@ class AudioEffectFetCompressor : public AudioStream
     void setRatioMode(RatioMode mode);
     void setSoftKnee(bool softknee);
     void setGainDb(float gain);
-    void setAttackTime(float uSec);
-    void setReleaseTime(float mSec);
+    void setAttackTimeUs(float uSec);
+    void setReleaseTimeMs(float mSec);
     void setMix(float percent);
 
   private:
@@ -39,26 +39,19 @@ class AudioEffectFetCompressor : public AudioStream
     float thresh;
 
     float ratio;
-    float cratio;
     float rundb;
-    float overdb;
     float ratatcoef;
     float ratrelcoef;
     float atcoef;
     float relcoef;
-    float mix;
+    float mix, oneMinusMix;
 
     float capsc;
-    int rpos;
     bool allin;
     float cthreshv, cthreshvRecip;
     float makeupv;
-    float autogain;
-    float spl, ospl, maxspl;
     float runave, rmscoef = 1, runmax, maxover;
-    float det;
     float averatio, runratio;
-    float gr, grv;
 
 };
 

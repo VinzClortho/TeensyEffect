@@ -23,9 +23,10 @@ AudioOutputAnalog        dac1;
 AudioConnection          patchCord1(adc1, tubeSat);
 AudioConnection          patchCord2(tubeSat, paraEq);
 AudioConnection          patchCord3(paraEq, optComp);
-AudioConnection          patchCord4(optComp, exciter);
-AudioConnection          patchCord5(exciter, outTrans);
-AudioConnection          patchCord6(outTrans, dac1);
+AudioConnection          patchCord4(optComp, fetComp);
+AudioConnection          patchCord5(fetComp, exciter);
+AudioConnection          patchCord6(exciter, outTrans);
+AudioConnection          patchCord7(outTrans, dac1);
 
 void setup() {
   Serial.begin(9600);
@@ -76,6 +77,9 @@ void testEffectCpu() {
 
   Serial.print("Exciter CPU: ");
   Serial.println(exciter.processorUsage());
+
+  Serial.print("Output Transformer CPU: ");
+  Serial.println(outTrans.processorUsage());
 
   Serial.println();
 }
