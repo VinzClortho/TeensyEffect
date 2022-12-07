@@ -33,41 +33,18 @@ void AudioEffectExciter::update(void) {
   float tmpONE = this->tmpONE;
   float tmpTWO = this->tmpTWO;
 
-#ifdef _HAS_FPU
-  float tmp;
-#endif
-
   // do the exciting stuff
-  for (int i = 0; i != AUDIO_BLOCK_SAMPLES; ++i) {
+  for (int i = 0; i < AUDIO_BLOCK_SAMPLES; ++i) {
     spl = inBlock->data[i] * INT_TO_FLOAT;
+    
     s = spl;
-
-#ifndef _HAS_FPU
     s -= tmpONE = a0 * s - b1 * tmpONE + C_DENORM;
-#else
-    tmp = fmaf(-b1, tmpONE, C_DENORM);
-    tmpONE = fmaf(a0, s, tmp);
-    s -= tmpONE;
-#endif
-
     s = min(max(s * clipBoost, -1), 1);
 
-#ifndef _HAS_FPU
     s = fooPlusOne * s / (1 + foo * fastAbs(spl));
     s -= tmpTWO = a0 * s - b1 * tmpTWO + C_DENORM;
-#else
-    tmp = fmaf(foo, fastAbs(spl), 1);
-    s = fooPlusOne * s / tmp;
-    tmp = fmaf(-b1, tmpTWO, C_DENORM);
-    tmpTWO = fmaf(a0, s, tmp);
-    s -= tmpTWO;
-#endif
 
-#ifndef _HAS_FPU
     spl += s * mixBack;
-#else
-    spl = fmaf(s, mixBack, spl);
-#endif
 
     outBlock->data[i] = spl * FLOAT_TO_INT;
   }

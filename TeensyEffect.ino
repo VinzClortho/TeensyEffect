@@ -6,32 +6,38 @@
 #include "AudioEffectOpticalCompressor.h"
 #include "AudioEffectFetCompressor.h"
 #include "AudioEffectExciter.h"
+#include "AudioEffectOutputTransformer.h"
 #include "FastMath.h"
 
 #define DEBUG
 
 AudioInputAnalog         adc1;
-AudioOutputAnalog        dac1;
+AudioEffectTubeSaturation tubeSat;
 AudioEffectParametricEq paraEq;
+AudioEffectOpticalCompressor optComp;
 AudioEffectExciter exciter;
 AudioEffectFetCompressor fetComp;
-AudioEffectOpticalCompressor optComp;
-//AudioConnection          patchCord1(adc1, fetComp);
-//AudioConnection          patchCord2(fetComp, dac1);
-//AudioConnection          patchCord3(optComp, fetComp);
-//AudioConnection          patchCord4(fetComp, exciter);
-//AudioConnection          patchCord5(exciter, dac1);
+AudioEffectOutputTransformer outTrans;
+AudioOutputAnalog        dac1;
+
+AudioConnection          patchCord1(adc1, tubeSat);
+AudioConnection          patchCord2(tubeSat, paraEq);
+AudioConnection          patchCord3(paraEq, optComp);
+AudioConnection          patchCord4(optComp, exciter);
+AudioConnection          patchCord5(exciter, outTrans);
+AudioConnection          patchCord6(outTrans, dac1);
 
 void setup() {
   Serial.begin(9600);
 
-  //  paraEq.init(AUDIO_SAMPLE_RATE_EXACT);
-  //  optComp.init(AUDIO_SAMPLE_RATE_EXACT);
-  //  fetComp.init(AUDIO_SAMPLE_RATE_EXACT);
-  //    exciter.init(AUDIO_SAMPLE_RATE_EXACT);
+  tubeSat.init(AUDIO_SAMPLE_RATE_EXACT);
+  paraEq.init(AUDIO_SAMPLE_RATE_EXACT);
+  optComp.init(AUDIO_SAMPLE_RATE_EXACT);
+  fetComp.init(AUDIO_SAMPLE_RATE_EXACT);
+  exciter.init(AUDIO_SAMPLE_RATE_EXACT);
 
   analogReference(INTERNAL);
-  AudioMemory(16);
+  AudioMemory(32);
 
 }
 
@@ -39,60 +45,48 @@ void loop() {
 
 #ifdef DEBUG
 
-  //  Serial.print("ParametricEq CPU: ");
-  //  Serial.println(paraEq.processorUsage());
-  //
-  //  Serial.print("Optical Compressor CPU: ");
-  //  Serial.println(optComp.processorUsageMax());
-  //
-  //  Serial.print("Fet Compressor CPU: ");
-  //  Serial.println(fetComp.processorUsageMax());
-  //
-  //  Serial.print("Exciter CPU: ");
-  //  Serial.println(exciter.processorUsage());
-  //
-  Serial.println();
+  __disable_irq();
 
+  testEffectCpu();
+
+  //    testMath();
+
+  __enable_irq();
+
+  delay(1000);
+
+#endif
+
+  // put your main code here, to run repeatedly
+
+}
+
+void testEffectCpu() {
+  Serial.print("ParametricEq CPU: ");
+  Serial.println(paraEq.processorUsage());
+
+  Serial.print("Tube Saturation CPU: ");
+  Serial.println(tubeSat.processorUsageMax());
+
+  Serial.print("Optical Compressor CPU: ");
+  Serial.println(optComp.processorUsageMax());
+
+  Serial.print("Fet Compressor CPU: ");
+  Serial.println(fetComp.processorUsageMax());
+
+  Serial.print("Exciter CPU: ");
+  Serial.println(exciter.processorUsage());
+
+  Serial.println();
+}
+
+void testMath() {
   float r;
   float recip, fRecip;
   float root, fRoot;
-  long loops = 10000;
+  long loops = 100000;
 
-  unsigned long start = millis();
-
-  for (long i = 0; i < loops; ++i) {
-    r = random(9) + 1.0f;
-    recip = 1.0f / r;
-  }
-  unsigned long end = millis();
-  Serial.print("Actual recip: ");
-  Serial.print(recip);
-  Serial.print("   ms: ");
-  Serial.println(end - start);
-
-
-//  start = millis();
-//  for (long i = 0; i < loops; ++i) {
-//    r = random(9) + 1.0f;
-//    fRecip = fastRecip(r);
-//  }
-//  end = millis();
-//  Serial.print("  Fast recip: ");
-//  Serial.print(fRecip);
-//  Serial.print("   ms: ");
-//  Serial.println(end - start);
-
-  start = millis();
-  for (long i = 0; i < loops; ++i) {
-    r = random(9) + 1.0f;
-    fRecip = fastRecip2(r);
-  }
-  end = millis();
-  Serial.print(" Fast recip2: ");
-  Serial.print(fRecip);
-  Serial.print("   ms: ");
-  Serial.println(end - start);
-
+  unsigned long start, end;
 
   start = millis();
   for (long i = 0; i < loops; ++i) {
@@ -105,36 +99,47 @@ void loop() {
   Serial.print("   ms: ");
   Serial.println(end - start);
 
-//  start = millis();
-//  for (long i = 0; i < loops; ++i) {
-//    r = random(2);
-//    fRoot = fastSqrt(r);
-//  }
-//  end = millis();
-//  Serial.print("   fast sqrt: ");
-//  Serial.print(fRoot);
-//  Serial.print("   ms: ");
-//  Serial.println(end - start);
-//
-//  start = millis();
-//  for (long i = 0; i < loops; ++i) {
-//    r = random(2);
-//    fRoot = fastSqrt2(r);
-//  }
-//  end = millis();
-//  Serial.print("  fast sqrt2: ");
-//  Serial.print(fRoot);
-//  Serial.print("   ms: ");
-//  Serial.println(end - start);
+
+  for (long i = 0; i < loops; ++i) {
+    r = random(2);
+    root = sqrtf(r);
+  }
+  end = millis();
+  Serial.print(" Actual sqrt: ");
+  Serial.print(root);
+  Serial.print("   ms: ");
+  Serial.println(end - start);
 
   start = millis();
   for (long i = 0; i < loops; ++i) {
-    r = random(20);
-    fRoot = fastSqrt3(r);
+    r = random(2);
+    fRoot = fastSqrt(r);
   }
   end = millis();
-  Serial.print("  fast sqrt3: ");
+  Serial.print("   fast sqrt: ");
   Serial.print(fRoot);
+  Serial.print("   ms: ");
+  Serial.println(end - start);
+
+  start = millis();
+  for (long i = 0; i < loops; ++i) {
+    r = random(2) + 0.01f;
+    recip = 1.0f / r;
+  }
+  end = millis();
+  Serial.print("Actual recip: ");
+  Serial.print(recip);
+  Serial.print("   ms: ");
+  Serial.println(end - start);
+
+  start = millis();
+  for (long i = 0; i < loops; ++i) {
+    r = random(2) + 0.01f;
+    fRecip = fastRecip(r);
+  }
+  end = millis();
+  Serial.print("  fast recip: ");
+  Serial.print(fRecip);
   Serial.print("   ms: ");
   Serial.println(end - start);
 
@@ -267,27 +272,19 @@ void loop() {
   // specific value tests
   //////////////////////////////////
 
-//  r = random(10);
-//  Serial.print("Recip ");
-//  recip = 1.0f / r;
-//  Serial.print(recip);
-//  Serial.print(" -> ");
-//  Serial.println(fastRecip2(r));
-//
-//  Serial.print("Pow 3.2, 3.9 = ");
-//  _pow = powf(3.2, 3.9);
-//  fPow = fastPow(3.2, 3.9);
-//  Serial.print(_pow);
-//  Serial.print(" -> ");
-//  Serial.println(fPow);
+  //  r = random(10);
+  //  Serial.print("Recip ");
+  //  recip = 1.0f / r;
+  //  Serial.print(recip);
+  //  Serial.print(" -> ");
+  //  Serial.println(fastRecip2(r));
+  //
+  //  Serial.print("Pow 3.2, 3.9 = ");
+  //  _pow = powf(3.2, 3.9);
+  //  fPow = fastPow(3.2, 3.9);
+  //  Serial.print(_pow);
+  //  Serial.print(" -> ");
+  //  Serial.println(fPow);
 
   Serial.println();
-
-  delay(1000);
-
-#endif
-
-  // put your main code here, to run repeatedly:
-
-
 }

@@ -5,7 +5,7 @@ void AudioEffectTubeSaturation::init(float sampleRate) {
   this->sampleRate = sampleRate;
 
   // defaults
-  setDrive(0.5);
+  setDrive(1.0f);  // max drive for low accuracy mode!
   setMakeupGainDb(0.0);
   setLpfFrequency(5000.0);
 }
@@ -21,26 +21,25 @@ void AudioEffectTubeSaturation::update(void) {
   if (inBlock == NULL || outBlock == NULL) return;
 
   // do the saturation stuff
-  for (int i = 0; i < AUDIO_BLOCK_SAMPLES; ++i) {
+  for (int i = 0; i != AUDIO_BLOCK_SAMPLES; ++i) {
 
-    inSpl = inBlock->data[i] * INT_TO_FLOAT;
+    inSpl = (float)inBlock->data[i] * INT_TO_FLOAT;
 
     // saturation
     satSpl = saturation(lastSpl, inSpl, ANTI_ALIASING_STEPS, drive);
     lastSpl = inSpl;
 
     // LPF
-#ifndef _HAS_FPU
     spl = lastSatSpl + alpha * (satSpl - lastSatSpl);
-#else
-    spl = fmaf(alpha, satSpl - lastSatSpl, lastSetSpl);
-#endif
 
     lastSatSpl = satSpl;
 
+    // Low pass filter
+    lastLpfSpl = spl = lastLpfSpl + alpha * (spl - lastLpfSpl);
+
     spl *= makeupGain;
 
-    outBlock->data[i] = spl * FLOAT_TO_INT;
+    outBlock->data[i] = (int)(spl * FLOAT_TO_INT);
   }
 
   // send the block and release the memory
@@ -50,6 +49,67 @@ void AudioEffectTubeSaturation::update(void) {
   release(inBlock);
   release(outBlock);
 }
+
+/*
+  - borrowed from https://dsp.stackexchange.com/questions/5959/add-odd-even-harmonics-to-signal
+
+  If you want to add odd harmonics, put your signal through an odd-symmetric transfer function like y = tanh(x) or y = x^3.
+
+  If you want to add only even harmonics, put your signal through a transfer function that's even symmetric plus an identity function,
+  to keep the original fundamental. Something like y = x + x^4 or y = x + abs(x). The x + keeps the fundamental that would otherwise be
+  destroyed, while the x^4 is even-symmetric and produces only even harmonics (including DC, which you probably want to remove
+  afterwards with a high-pass filter).
+
+  - just 6 multiply/adds
+  - input range: -1.0 to 1.0
+  - output may exceed input range!
+  - adds even interval harmonics
+  - TODO: how many even orders are enough? The fewer the better as this will generally be getting called from a loop.
+  - removed 6th harmonic as it would relate to a perfect 5th tone wise. Intervals 2, 4, and 8 are perfect octaves from the fundamental.
+
+  https://en.wikipedia.org/wiki/Chebyshev_polynomials
+*/
+#define ROOT_SCALAR 0.8
+#define SECOND_SCALAR 0.4
+#define FOURTH_SCALAR 0.2
+
+float AudioEffectTubeSaturation::addEvenOrderHarmonics(float x) {
+  float x2 = x * x;
+
+//  return ROOT_SCALAR * x + SECOND_SCALAR * x2;
+
+  //  return x * (ROOT_SCALAR + x * (SECOND_SCALAR + FOURTH_SCALAR * x2));  // basic polynomial
+
+    return x * (4 * x2 * (3 * x2 - 2) + 3); // Chebyshev polynomial of fundamental, 1nd and third harmonics
+
+  // https://www.wolframalpha.com/input?i=x%2B2x%5E2-1%2B6x%5E4-4x%5E2%2B1
+//    return x * (x * (6 * x - 2) + 1); // Chebyshev polynomial of fundamental, 2nd and forth harmonics
+
+}
+
+/**
+   Use linear interpolation for anti-aliasing. Using fixed constant steps to avoid divides.
+   Generate even order harrmonics then drive through tanh.
+   y0 is last input and y2 is current input.
+   antiAliasSteps is the oversampling amount:
+      - range 1 to 8
+      - suggested 2 to 4?
+      - if using antiAliasSteps=1, then y0 should be 0
+   drive is a value between 0.0 and 1.0
+*/
+float AudioEffectTubeSaturation::saturation(float y0, float y2, int antiAliasSteps, float drive) {
+  float sum = 0.0;
+  float step = 1.0f / antiAliasSteps;
+
+  // over an x delta of 1, so simple math
+  float m = y2 - y0;
+
+  for (float x = 0.0; x < 1.0; x += step) {
+    sum += fastTanh(drive * addEvenOrderHarmonics(m * x + y0));
+  }
+
+  return sum * step;
+  }
 
 void AudioEffectTubeSaturation::setDrive(float drive) {
   __disable_irq();

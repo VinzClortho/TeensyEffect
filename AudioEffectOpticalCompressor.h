@@ -1,5 +1,5 @@
-#ifndef _AUDIO_STREAM_OPTICAL_COMP_H
-#define _AUDIO_STREAM_OPTICAL_COMP_H
+#ifndef _AUDIO_EFFECT_OPTICAL_COMP_H
+#define _AUDIO_EFFECT_OPTICAL_COMP_H
 
 #include <Arduino.h>
 #include <AudioStream.h>
@@ -19,28 +19,20 @@ class AudioEffectOpticalCompressor : public AudioStream
     void setMakeupGainDb(float gain);
     void setBlownCapacitor(bool blownCap);
     void setTimeConstant(int tc);
-    void setRmsWindowMs(int windowMs);
+    void setRmsWindowUs(int windowUs);
 
   private:
     audio_block_t *inputQueueArray[1];
 
-    void setThresholdParams(float thresh, float bias);
-
     float sampleRate;
-    bool blownCap;
-
-    float thresh, threshv, threshvRecip;
-    float cthreshv;
-    float bias;
+    
+    float threshvRecip;
+    float biasRecip;
     float makeupv;
     float capsc;
     float atcoef, relcoef, rmscoef;
-
-    float spl, maxspl;
-    float runave, det, overdb, rundb;
-    float cratio, ratio;
-    float dcoffset = 0.0;
-    float gr, grv;
+    float runave, rundb = 0.0f;
+    float ratio = 20.0f;
 };
 
-#endif /* _AUDIO_STREAM_OPTICAL_COMP_H */
+#endif /* _AUDIO_EFFECT_OPTICAL_COMP_H */

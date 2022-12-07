@@ -1,7 +1,6 @@
 #ifndef _FAST_MATH_H
 #define _FAST_MATH_H
 
-// #define _HAS_FPU
 // #define _HIGHER_ACCURACY
 
 #define NUM_CHANNELS 1
@@ -13,8 +12,8 @@ inline
 #define LOG_TO_DB  8.6858896380650365530225783783321 // 20 / ln(10)
 #define DB_TO_LOG  0.11512925464970228420089957273422 // ln(10) / 20 
 #define BLOWN_CAP_SCALAR 2.08136898
-#define FLOAT_TO_INT  2048
-#define INT_TO_FLOAT  1.0/FLOAT_TO_INT
+#define FLOAT_TO_INT  32768
+#define INT_TO_FLOAT  1.0f/FLOAT_TO_INT
 
 #define AA_STEP_1 1.0
 #define AA_STEP_2 1.0/2.0
@@ -34,12 +33,9 @@ bool fastIsNegative(const float x);
 float fastLog(const float a);
 bool fastNonZero(const float x);
 float fastPow(float a, float b);
-float fastRecip(float x);
-float fastRecip2(float f);
+float fastRecip(const float f);
 float fastSin(float x);
 float fastSqrt(const float x);
-float fastSqrt2(const float x);
-float fastSqrt3(const float x);
 float fastTanh(float x);
 
 // implementation methods not intended for general use
