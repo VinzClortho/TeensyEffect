@@ -114,7 +114,7 @@ void AudioEffectParametricEq::update(void) {
     x20 = _x10;
     _x10 = ospl;
     y20 = y10;
-    y10 = fastAbs(spl) < C_DENORM ? 0 : spl;
+    y10 = abs(spl) < C_DENORM ? 0 : spl;
 
     spl += C_DC_ADD;
 
@@ -257,10 +257,10 @@ void AudioEffectParametricEq::setHpfFreq(float freq) {
   this->hpfFreq = fixFreq(freq);
   a0 = 1;
   s0 = 1;
-  q0 = 1 / (fastSqrt((a0 + 1 / a0) * (1 / s0 - 1) + 2));
-  w00 = 2 * PI * freq / sampleRate;
+  q0 = 1 / (sqrt((a0 + 1 / a0) * (1 / s0 - 1) + 2));
+  w00 = 2 * PI * this->hpfFreq / sampleRate;
   cosw00 = cos(w00);
-  sinw00 = fastSin(w00);
+  sinw00 = sin(w00);
   alpha0 = sinw00 / (2 * q0);
 
   b00 = (1 + cosw00) / 2;
@@ -341,11 +341,11 @@ void AudioEffectParametricEq::setLowMidGain(float gain) {
 }
 
 void AudioEffectParametricEq::setLowMidParams(float freq, float q, float gain) {
-  a3 = fastPow(10, (gain / 40));
+  a3 = pow(10, (gain / 40));
   q3 = q;
   w03 = 2 * PI * freq / sampleRate;
   cosw03 = cos(w03);
-  sinw03 = fastSin(w03);
+  sinw03 = sin(w03);
   alpha3 = sinw03 / (2 * q3);
 
   b03 = 1 + alpha3 * a3;
@@ -425,11 +425,11 @@ void AudioEffectParametricEq::setHighGain(float gain) {
 }
 
 void AudioEffectParametricEq::setHighParams(float freq, float q, float gain) {
-  a7 = fastPow(10, (gain / 40.0f));
+  a7 = pow(10, (gain / 40.0f));
   q7 = q;
   w07 = 2 * PI * freq / sampleRate;
   cosw07 = cos(w07);
-  sinw07 = fastSin(w07);
+  sinw07 = sin(w07);
   alpha7 = sinw07 / (2 * q7);
 
   b07 = 1 + alpha7 * a7;
@@ -450,10 +450,10 @@ void AudioEffectParametricEq::setLpfFreq(float freq) {
   this->lpfFreq = fixFreq(freq);;
   a9 = 1;
   s9 = 2;
-  q9 = 1 / (fastSqrt((a9 + 1 / a9) * (1 / s9 - 1) + 2));
-  w09 = 2 * PI * freq / sampleRate;
+  q9 = 1 / (sqrt((a9 + 1 / a9) * (1 / s9 - 1) + 2));
+  w09 = 2 * PI * this->lpfFreq / sampleRate;
   cosw09 = cos(w09);
-  sinw09 = fastSin(w09);
+  sinw09 = sin(w09);
   alpha9 = sinw09 / (2 * q9);
 
   b09 = (1 - cosw09) / 2;

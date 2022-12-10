@@ -1,7 +1,8 @@
 #ifndef _FAST_MATH_H
 #define _FAST_MATH_H
 
-// #define _HIGHER_ACCURACY
+#define _HIGHER_ACCURACY
+#define _USE_LITTLE_ENDIAN
 
 #define NUM_CHANNELS 1
 #define AUDIO_BLOCK_SAMPLES 128

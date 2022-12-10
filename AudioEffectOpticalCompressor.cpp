@@ -7,9 +7,9 @@ void AudioEffectOpticalCompressor::init(float sampleRate) {
   setThresholdDb(-3.0);
   setBias(70.0);
   setMakeupGainDb(0.0);
-  setBlownCapacitor(false);
+  setBlownCapacitor(true);
   setTimeConstant(1);
-  setRmsWindowUs(50);
+  setRmsWindowUs(100);
 }
 
 void AudioEffectOpticalCompressor::update(void) {
@@ -47,14 +47,15 @@ void AudioEffectOpticalCompressor::update(void) {
     overdb = max(0, overdb);
 
     float dbDelta = rundb - overdb;
+
     rundb = overdb;
     // dbDelta will be negative if overdb is greater than rundb, so we're in the attack phase.  Otherwise, we're in the release phase.
-    rundb += dbDelta < 0.0f ? atcoef * dbDelta : relcoef * dbDelta;
+    rundb += (dbDelta < 0.0f ? atcoef : relcoef) * dbDelta;
 
     overdb = max(rundb, 0);
 
     float cratio = OPT_COMP_RATIO_MINUS_ONE * fastSqrt(overdb * biasRecip);
-    float gr = -overdb * cratio  / (cratio + 1);
+    gr = -overdb * cratio  / (cratio + 1);
     float grv = fastExp(gr * DB_TO_LOG);
 
     spl *= grv * makeupv;
@@ -75,9 +76,16 @@ void AudioEffectOpticalCompressor::update(void) {
 
 }
 
+float AudioEffectOpticalCompressor::getGainReduction() {
+  return gr;
+}
+
 void AudioEffectOpticalCompressor::setThresholdDb(float thresh) {
   __disable_irq();
-  threshvRecip = 1.0 / fastExp(thresh * DB_TO_LOG);
+  threshvRecip = 1.0 / exp(thresh * DB_TO_LOG);
+  Serial.print("threshvRecip: ");
+  Serial.println(threshvRecip);
+
   __enable_irq();
 }
 
@@ -87,12 +95,16 @@ void AudioEffectOpticalCompressor::setBias(float bias) {
   if (bias < 0.1) bias = 0.1;
   bias *= 0.8;
   this->biasRecip = 1.0f / bias;
+  Serial.print("biasRecip: ");
+  Serial.println(biasRecip);
   __enable_irq();
 }
 
 void AudioEffectOpticalCompressor::setMakeupGainDb(float gain) {
   __disable_irq();
-  makeupv = fastExp(gain * DB_TO_LOG);
+  makeupv = exp(gain * DB_TO_LOG);
+  Serial.print("makeupv: ");
+  Serial.println(makeupv);
   __enable_irq();
 }
 
@@ -138,8 +150,14 @@ void AudioEffectOpticalCompressor::setTimeConstant(int tc) {
       break;
   }
 
-  atcoef = fastExp(-1 / (attime * sampleRate));
-  relcoef = fastExp(-1 / (reltime * sampleRate));
+  atcoef = exp(-1 / (attime * sampleRate));
+  relcoef = exp(-1 / (reltime * sampleRate));
+
+  Serial.print("atcoef: ");
+  Serial.println(atcoef);
+
+  Serial.print("relcoef: ");
+  Serial.println(relcoef);
 
   __enable_irq();
 }
@@ -147,6 +165,10 @@ void AudioEffectOpticalCompressor::setTimeConstant(int tc) {
 void AudioEffectOpticalCompressor::setRmsWindowUs(int windowUs) {
   __disable_irq();
   float rmstime = (float)windowUs * 0.000001;
-  rmscoef = fastExp(-1 / (rmstime * sampleRate));
+  Serial.print("rmstime: ");
+  Serial.println(rmstime);
+  rmscoef = exp(-1 / (rmstime * sampleRate));
+  Serial.print("rmscoef: ");
+  Serial.println(rmscoef);
   __enable_irq();
 }

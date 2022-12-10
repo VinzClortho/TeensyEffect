@@ -5,9 +5,9 @@ void AudioEffectTubeSaturation::init(float sampleRate) {
   this->sampleRate = sampleRate;
 
   // defaults
-  setDrive(1.0f);  // max drive for low accuracy mode!
-  setMakeupGainDb(0.0);
-  setLpfFrequency(5000.0);
+  setDrive(0.8);
+  setMakeupGainDb(-3.0);  // since this is the first plugin, drop the output down to allow for headroom for following plugins
+  setLpfFrequency(3000.0);
 }
 
 void AudioEffectTubeSaturation::update(void) {
@@ -69,8 +69,8 @@ void AudioEffectTubeSaturation::update(void) {
 
   https://en.wikipedia.org/wiki/Chebyshev_polynomials
 */
-#define ROOT_SCALAR 0.8
-#define SECOND_SCALAR 0.4
+#define ROOT_SCALAR 1.0
+#define SECOND_SCALAR 0.5
 #define FOURTH_SCALAR 0.2
 
 float AudioEffectTubeSaturation::addEvenOrderHarmonics(float x) {
@@ -80,7 +80,9 @@ float AudioEffectTubeSaturation::addEvenOrderHarmonics(float x) {
 
   //  return x * (ROOT_SCALAR + x * (SECOND_SCALAR + FOURTH_SCALAR * x2));  // basic polynomial
 
-  return x * (4 * x2 * (3 * x2 - 2) + 3); // Chebyshev polynomial of fundamental, 1nd and third harmonics
+//    return x * (4 * x2 * (3 * x2 - 2) + 3); // Chebyshev polynomial of fundamental, 1nd and third harmonics
+
+  return ROOT_SCALAR * x + SECOND_SCALAR * 2 * x * (1 + 2 * x2 * (3 * x2 - 1));
 
   // https://www.wolframalpha.com/input?i=x%2B2x%5E2-1%2B6x%5E4-4x%5E2%2B1
   //    return x * (x * (6 * x - 2) + 1); // Chebyshev polynomial of fundamental, 2nd and forth harmonics

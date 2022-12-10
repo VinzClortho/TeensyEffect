@@ -5,9 +5,9 @@ void AudioEffectExciter::init(float sampleRate) {
   this->sampleRate = sampleRate;
 
   // set defaults
-  setFrequency(1200.0);
-  setClipBoostDb(6.0);
-  setHarmonicsPercent(50.0);
+  setFrequency(500.0);
+  setClipBoostDb(0.0);
+  setHarmonicsPercent(25.0);
   setMixBackDb(-6.0);
 }
 
@@ -35,7 +35,7 @@ void AudioEffectExciter::update(void) {
 
   // do the exciting stuff
   for (int i = 0; i < AUDIO_BLOCK_SAMPLES; ++i) {
-    spl = inBlock->data[i] * INT_TO_FLOAT;
+    spl = (float)inBlock->data[i] * INT_TO_FLOAT;
     
     s = spl;
     s -= tmpONE = a0 * s - b1 * tmpONE + C_DENORM;
@@ -46,7 +46,7 @@ void AudioEffectExciter::update(void) {
 
     spl += s * mixBack;
 
-    outBlock->data[i] = spl * FLOAT_TO_INT;
+    outBlock->data[i] = (int)(spl * FLOAT_TO_INT);
   }
 
   // copy temp variables back into class state

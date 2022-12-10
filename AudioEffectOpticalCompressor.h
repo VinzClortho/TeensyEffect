@@ -23,18 +23,20 @@ class AudioEffectOpticalCompressor : public AudioStream
     void setBlownCapacitor(bool blownCap);
     void setTimeConstant(int tc);
     void setRmsWindowUs(int windowUs);
+    float getGainReduction() ;
 
   private:
     audio_block_t *inputQueueArray[1];
 
     float sampleRate;
-    
+
     float threshvRecip;
     float biasRecip;
     float makeupv;
     float capsc;
     float atcoef, relcoef, rmscoef;
-    float runave, rundb = 0.0f;
+    float runave = 0.0f, rundb = 0.0f;
+    float gr;
 };
 
 #endif /* _AUDIO_EFFECT_OPTICAL_COMP_H */

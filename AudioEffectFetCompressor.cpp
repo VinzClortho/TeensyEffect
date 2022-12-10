@@ -8,7 +8,7 @@ void AudioEffectFetCompressor::init(float sampleRate) {
   setRatioMode(Clean4);
   setGainDb(0.0);
   setAttackTimeUs(20);
-  setReleaseTimeMs(100);
+  setReleaseTimeMs(50);
   setMix(100.0);
   ratatcoef = fastExp(-1 / (0.00001 * sampleRate));
   ratrelcoef = fastExp(-1 / (0.5 * sampleRate));

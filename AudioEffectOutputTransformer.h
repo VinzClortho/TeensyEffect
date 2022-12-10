@@ -14,8 +14,12 @@ class AudioEffectOutputTransformer : public AudioStream
     }
     virtual void update(void);
 
+    void setDrive(float drive);
+
   private:
     audio_block_t *inputQueueArray[1];
+
+    float drive = 1.0f;
 };
 
 #endif /* _AUDIO_EFFECT_OUTPUT_TRANSFORMER_H */

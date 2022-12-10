@@ -15,22 +15,8 @@ float fastTanh(float x) {
   float x2 = x * x;
 
 #ifdef _HIGHER_ACCURACY
-#ifdef _HAS_FPU
-  float tmp;
-#endif
-
-#ifndef _HAS_FPU
   float a = (((x2 + 378) * x2 + 17325) * x2 + 135135) * x;
   float b = ((28 * x2 + 3150) * x2 + 62370) * x2 + 135135;
-#else
-  tmp = x2 + 378;
-  tmp = fmaf(tmp, x2, 17325);
-  tmp = fmaf(tmp, x2, 135135);
-  float a = tmp * x;
-  tmp = fmaf(28, x2, 3150);
-  tmp = fmaf(tmp, x2, 62370);
-  float b = fmaf(tmp, x2, 135135);
-#endif
 #else
   // super fast version, only really usable between +-2.5 input
   //  float a = x * (x2 + 15);
@@ -39,7 +25,6 @@ float fastTanh(float x) {
   // medium acccuracy version, usable over a much wider range
   float a = 5 * x * (2 * x2 + 21);
   float b = x2 * (x2 + 45) + 105;
-
 #endif
 
   return a / b;
@@ -58,15 +43,19 @@ float fastSqrt(const float x) {
   i -= 1 << 23; /* Subtract 2^m. */
   i >>= 1;    /* Divide by 2. */
   i += 1 << 29; /* Add ((b + 1) / 2) * 2^m. */
+#ifdef _USE_LITTLE_ENDIAN
+  i &= 0xFFFFFF7F; /* ensure that sign bit is not set */
+#else
   i &= 0x7FFFFFFF; /* ensure that sign bit is not set */
+#endif
   float f = *(float*)&i;
 
   // this will improve accuracy but up to triple CPU cycles
 #ifdef _HIGHER_ACCURACY
-  return (f * f + x) / (2.0f * f);
+  f =  (f * f + x) / (2.0f * f);
 #endif
 
-  return f;   /* Interpret again as float */
+  return fastAbs(f);   /* Interpret again as float */
 }
 
 /////////////////////////////
@@ -78,7 +67,11 @@ float fastSqrt(const float x) {
 float fastRecip(const float f) {
   // get a good estimate via bit twiddling
   uint32_t x = *(uint32_t*)&f;
+#ifdef _USE_LITTLE_ENDIAN
+  x = 0xC211FE7E - x;
+#else
   x = 0x7EF311C2 - x;
+#endif
   float inv = *(float*)&x;
 
   // newton-raphson iteration for accuracy
@@ -132,18 +125,30 @@ float fastSin(float x) {
 float fastAbs(float f) {
   uint32_t i = *(uint32_t*)&f;
   // unset sign bit
+#ifdef _USE_LITTLE_ENDIAN
   i &= 0x7FFFFFFF;
+#else
+  i &= 0xFFFFFF7F;
+#endif
   return *(float*)&i;
 }
 
 bool fastNonZero(const float x) {
   uint32_t i = *(uint32_t*)&x;
+#ifdef _USE_LITTLE_ENDIAN
+  return (i & 0xFFFFFF7F) != 0;
+#else
   return (i & 0x7FFFFFFF) != 0;
+#endif
 }
 
 bool fastIsNegative(const float x) {
   uint32_t i = *(uint32_t*)&x;
+#ifdef _USE_LITTLE_ENDIAN
+  return (i & 0x00000080) != 0;
+#else
   return (i & 0x80000000) != 0;
+#endif
 }
 
 /////////////////////////////
@@ -176,10 +181,11 @@ float _floatToIntPower( float base, int power) {
 }
 
 float _fastPow(const float a, const float b) {
-  uint32_t i = *(uint32_t*)&a;
-  i = (uint32_t)(b * (float)(i - 1064866805) + 1064866805);
-  float r = *(float*)&i;
-  return r;
+  return powf(a, b);
+  //  uint32_t i = *(uint32_t*)&a;
+  //  i = (uint32_t)(b * (float)(i - 1064866805) + 1064866805);
+  //  float r = *(float*)&i;
+  //  return r;
 }
 
 /////////////////////////////
@@ -209,7 +215,12 @@ float fastExp(const float x) {
 float fastLog(const float a) {
   float m, r, s, t, i, f;
   uint32_t aI = *(uint32_t*)&a;
+
+#ifdef _USE_LITTLE_ENDIAN
+  uint32_t e = (aI - 0xabaa3a3f) & 0x000080ff;
+#else
   uint32_t e = (aI - 0x3f2aaaab) & 0xff800000;
+#endif
   uint32_t aIMinusE = (aI - e);
   m = *(float*)&aIMinusE;
   i = (float) e * 1.19209290e-7f; // 0x1.0p-23

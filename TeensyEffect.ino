@@ -4,41 +4,67 @@
 #include "AudioEffectParametricEq.h"
 #include "AudioEffectGraphicEq.h"
 #include "AudioEffectOpticalCompressor.h"
+#include "AudioEffectDbx160Comp.h"
 #include "AudioEffectFetCompressor.h"
 #include "AudioEffectExciter.h"
+#include "AudioFilterShelfEq.h"
 #include "AudioEffectOutputTransformer.h"
 #include "FastMath.h"
 
 #define DEBUG
 
-AudioInputAnalog         adc1;
+#define SAMPLERATE AUDIO_SAMPLE_RATE
+
+AudioInputI2S       audioInput;
+AudioOutputI2S      audioOutput;
+AudioControlSGTL5000 audioShield;
+
+//AudioInputAnalog         adc1;
+//AudioOutputAnalog        dac1;
+
+AudioEffectOpticalCompressor optComp;
 AudioEffectTubeSaturation tubeSat;
 AudioEffectParametricEq paraEq;
-AudioEffectOpticalCompressor optComp;
+AudioEffectDbx160Comp dbxComp;
 AudioEffectExciter exciter;
 AudioEffectFetCompressor fetComp;
+AudioFilterShelfEq shelfEq;
 AudioEffectOutputTransformer outTrans;
-AudioOutputAnalog        dac1;
 
-AudioConnection          patchCord1(adc1, tubeSat);
-AudioConnection          patchCord2(tubeSat, paraEq);
-AudioConnection          patchCord3(paraEq, optComp);
-AudioConnection          patchCord4(optComp, fetComp);
-AudioConnection          patchCord5(fetComp, exciter);
-AudioConnection          patchCord6(exciter, outTrans);
-AudioConnection          patchCord7(outTrans, dac1);
+AudioConnection          patchCord1(audioInput, tubeSat);
+AudioConnection          patchCord2(tubeSat, optComp);
+AudioConnection          patchCord3(optComp, paraEq);
+AudioConnection          patchCord4(paraEq, dbxComp);
+AudioConnection          patchCord5(dbxComp, fetComp);
+AudioConnection          patchCord6(fetComp, shelfEq);
+
+AudioConnection          outputL(shelfEq, 0, audioOutput, 0);
+AudioConnection          outputR(shelfEq, 0, audioOutput, 1);
 
 void setup() {
   Serial.begin(9600);
 
-  tubeSat.init(AUDIO_SAMPLE_RATE_EXACT);
-  paraEq.init(AUDIO_SAMPLE_RATE_EXACT);
-  optComp.init(AUDIO_SAMPLE_RATE_EXACT);
-  fetComp.init(AUDIO_SAMPLE_RATE_EXACT);
-  exciter.init(AUDIO_SAMPLE_RATE_EXACT);
+  tubeSat.init(SAMPLERATE);
+  paraEq.init(SAMPLERATE);
+  optComp.init(SAMPLERATE);
+  dbxComp.init(SAMPLERATE);
+  fetComp.init(SAMPLERATE);
+  exciter.init(SAMPLERATE);
+  shelfEq.init(SAMPLERATE);
 
-  analogReference(INTERNAL);
+  //  analogReference(INTERNAL);
   AudioMemory(32);
+
+  // Enable the audio shield and set the output volume.
+  audioShield.enable();
+  //  audioShield.inputSelect(AUDIO_INPUT_MIC);
+  audioShield.inputSelect(AUDIO_INPUT_LINEIN);
+  audioShield.volume(0.9);
+
+  audioShield.audioPostProcessorEnable();
+  audioShield.enhanceBassEnable(); // all we need to do for default bass enhancement settings.
+  // audioShield.enhanceBass((float)lr_level,(float)bass_level);
+  // audioShield.enhanceBass((float)lr_level,(float)bass_level,(uint8_t)hpf_bypass,(uint8_t)cutoff);
 
 }
 
@@ -48,9 +74,13 @@ void loop() {
 
   __disable_irq();
 
+  //  powTest();
+
   testEffectCpu();
 
-  //    testMath();
+  //  showPluginData();
+
+  //  testMath();
 
   __enable_irq();
 
@@ -61,6 +91,35 @@ void loop() {
   // put your main code here, to run repeatedly
 
 }
+
+void logTest() {
+  for (float f = 0.f; f < 2.0f; f += 0.01) {
+    Serial.print("log: ");
+    Serial.print(logf(f));
+    Serial.print("   fastLog: ");
+    Serial.println(fastLog(f));
+  }
+}
+
+void powTest() {
+  for (float f = 0.f; f < 2.0f; f += 0.01) {
+    Serial.print("pow: ");
+    Serial.print(powf(f, 3.2));
+    Serial.print("   fastPow: ");
+    Serial.println(fastPow(f, 3.2));
+  }
+}
+
+void sqrtTest() {
+  for (float f = 0.f; f < 2.0f; f += 0.01) {
+    Serial.print("sqrt: ");
+    Serial.print(sqrtf(f));
+    Serial.print("   fastSqrt: ");
+    Serial.println(fastSqrt(f));
+
+  }
+}
+
 
 void testEffectCpu() {
   Serial.print("ParametricEq CPU: ");
@@ -74,6 +133,9 @@ void testEffectCpu() {
 
   Serial.print("Fet Compressor CPU: ");
   Serial.println(fetComp.processorUsageMax());
+
+  Serial.print("DBX 160 Compressor CPU: ");
+  Serial.println(dbxComp.processorUsageMax());
 
   Serial.print("Exciter CPU: ");
   Serial.println(exciter.processorUsage());
@@ -291,4 +353,9 @@ void testMath() {
   //  Serial.println(fPow);
 
   Serial.println();
+}
+
+void showPluginData() {
+  Serial.print("OptComp gain reduction: ");
+  Serial.println(optComp.getGainReduction());
 }

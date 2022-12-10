@@ -41,21 +41,21 @@ class AudioEffectParametricEq : public AudioStream {
     float maxFrequency;
 
     // with defaults
-    float hpfFreq = 30;
+    float hpfFreq = 40;
     float lowFreq = 150;
     float lowQ = 2;
     float lowGain = 0;
-    float lowMidFreq = 500;
-    float lowMidQ = 1;
-    float lowMidGain = 0;
+    float lowMidFreq = 300;
+    float lowMidQ = 0.25;
+    float lowMidGain = -12;
     float highMidFreq = 800;
     float highMidQ = 0.5;
-    float highMidGain = 6;
+    float highMidGain = 3;
     float highFreq = 2400;
     float highQ = 1;
     float highGain = 0;
     float lpfFreq = 5000;
-    float outGain = -6;
+    float outGain = -3;
 
     float a0;
     float s0;
