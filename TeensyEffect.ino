@@ -32,14 +32,16 @@ AudioFilterShelfEq shelfEq;
 AudioEffectOutputTransformer outTrans;
 
 AudioConnection          patchCord1(audioInput, tubeSat);
-AudioConnection          patchCord2(tubeSat, optComp);
-AudioConnection          patchCord3(optComp, paraEq);
-AudioConnection          patchCord4(paraEq, dbxComp);
-AudioConnection          patchCord5(dbxComp, fetComp);
-AudioConnection          patchCord6(fetComp, shelfEq);
+AudioConnection          patchCord2(tubeSat, shelfEq);
+AudioConnection          patchCord3(shelfEq, optComp);
+AudioConnection          patchCord4(optComp, paraEq);
+AudioConnection          patchCord5(paraEq, dbxComp);
+AudioConnection          patchCord6(dbxComp, fetComp);
+AudioConnection          patchCord7(fetComp, outTrans);
+//AudioConnection          patchCord8(exciter, outTrans);
 
-AudioConnection          outputL(shelfEq, 0, audioOutput, 0);
-AudioConnection          outputR(shelfEq, 0, audioOutput, 1);
+AudioConnection          outputL(outTrans, 0, audioOutput, 0);
+AudioConnection          outputR(outTrans, 0, audioOutput, 1);
 
 void setup() {
   Serial.begin(9600);
@@ -61,36 +63,52 @@ void setup() {
   audioShield.inputSelect(AUDIO_INPUT_LINEIN);
   audioShield.volume(0.9);
 
-  audioShield.audioPostProcessorEnable();
-  audioShield.enhanceBassEnable(); // all we need to do for default bass enhancement settings.
-  // audioShield.enhanceBass((float)lr_level,(float)bass_level);
-  // audioShield.enhanceBass((float)lr_level,(float)bass_level,(uint8_t)hpf_bypass,(uint8_t)cutoff);
-
+//  audioShield.audioPostProcessorEnable();
+//  audioShield.enhanceBassEnable(); // all we need to do for default bass enhancement settings.
+//  audioShield.enhanceBass(5, 127);
+//  setBassEnhanceLevel(127, false, 80);
 }
 
 void loop() {
 
 #ifdef DEBUG
 
-  __disable_irq();
+//  __disable_irq();
 
   //  powTest();
 
-  testEffectCpu();
+//  testEffectCpu();
 
-  //  showPluginData();
+//    showPluginData();
 
-  //  testMath();
+//    testMath();
 
-  __enable_irq();
+//  __enable_irq();
 
-  delay(1000);
+//  delay(1000);
 
 #endif
 
   // put your main code here, to run repeatedly
 
 }
+
+/**
+   bassLevel is 0 to 127?
+*/
+void setBassEnhanceLevel(float bassLevel, bool hpfOn, float cutOffFreq) {
+  uint8_t cutOff = 0;
+  if (cutOffFreq > 80) ++cutOff;
+  if (cutOffFreq > 100) ++cutOff;
+  if (cutOffFreq > 125) ++cutOff;
+  if (cutOffFreq > 150) ++cutOff;
+  if (cutOffFreq > 175) ++cutOff;
+  if (cutOffFreq > 200) ++cutOff;
+
+  audioShield.enhanceBass(5, bassLevel, hpfOn ? 1 : 0, cutOff);
+}
+
+
 
 void logTest() {
   for (float f = 0.f; f < 2.0f; f += 0.01) {

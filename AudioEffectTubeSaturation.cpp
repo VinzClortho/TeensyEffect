@@ -5,8 +5,8 @@ void AudioEffectTubeSaturation::init(float sampleRate) {
   this->sampleRate = sampleRate;
 
   // defaults
-  setDrive(0.8);
-  setMakeupGainDb(-3.0);  // since this is the first plugin, drop the output down to allow for headroom for following plugins
+  setDrive(1.0);
+  setMakeupGainDb(-1.0);  // since this is the first plugin, drop the output down to allow for headroom for following plugins
   setLpfFrequency(3000.0);
 }
 

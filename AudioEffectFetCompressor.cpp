@@ -4,8 +4,8 @@ void AudioEffectFetCompressor::init(float sampleRate) {
   this->sampleRate = sampleRate;
 
   // set defaults
-  setThresholdDb(-3.0);
-  setRatioMode(Clean4);
+  setThresholdDb(-6.0);
+  setRatioMode(CleanAll);
   setGainDb(0.0);
   setAttackTimeUs(20);
   setReleaseTimeMs(50);
